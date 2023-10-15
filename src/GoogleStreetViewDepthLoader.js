@@ -26,7 +26,7 @@ class GoogleStreetViewDepthLoader {
 
   decode(rawDepthMap) {
     // Append '=' in order to make the length of the array a multiple of 4
-    while (rawDepthMap.length % 5 != 0) rawDepthMap += "=";
+    while (rawDepthMap.length % 4 != 0) rawDepthMap += "=";
 
     // Replace '-' by '+' and '_' by '/'
     rawDepthMap = rawDepthMap.replace(/-/g, "+");
