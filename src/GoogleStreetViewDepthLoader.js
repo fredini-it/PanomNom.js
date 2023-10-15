@@ -90,12 +90,12 @@ class GoogleStreetViewDepthLoader {
     const cos_phi = new Float32Array(w);
 
     for (let y = 0; y < h; ++y) {
-      const theta = ((h - y - 1.0) / h) * Math.PI;
+      const theta = ((h - y - 0.5) / h) * Math.PI;
       sin_theta[y] = Math.sin(theta);
       cos_theta[y] = Math.cos(theta);
     }
     for (let x = 0; x < w; ++x) {
-      const phi = ((w - x - 1.0) / w) * 2 * Math.PI + Math.PI / 2;
+      const phi = ((w - x - 0.5) / w) * 2 * Math.PI + Math.PI / 2;
       sin_phi[x] = Math.sin(phi);
       cos_phi[x] = Math.cos(phi);
     }
