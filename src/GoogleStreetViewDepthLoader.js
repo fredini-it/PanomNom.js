@@ -84,40 +84,40 @@ class GoogleStreetViewDepthLoader {
 
     const depthMap = new Float32Array(w * h);
 
-    const sin_theta = new Float32Array(w);
-    const cos_theta = new Float32Array(w);
-    const sin_phi = new Float32Array(h);
-    const cos_phi = new Float32Array(h);
+    const sin_theta = new Float32Array(h);
+    const cos_theta = new Float32Array(h);
+    const sin_phi = new Float32Array(w);
+    const cos_phi = new Float32Array(w);
 
-    for (let x = 0; x < w; ++x) {
-      const theta = ((w - x - 1.0) / (w - 1.0)) * (2 * Math.PI) + (Math.PI / 2);
-      sin_theta[x] = Math.sin(theta);
-      cos_theta[x] = Math.cos(theta);
-    }
     for (let y = 0; y < h; ++y) {
-      const phi = ((h - y - 1.0) / (h - 1.0)) * Math.PI;
-      sin_phi[y] = Math.sin(phi);
-      cos_phi[y] = Math.cos(phi);
+      const theta = ((h - y - 0.5) / h) * Math.PI;
+      sin_theta[y] = Math.sin(theta);
+      cos_theta[y] = Math.cos(theta);
+    }
+    for (let x = 0; x < w; ++x) {
+      const phi = ((w - x - 0.5) / w) * 2 * Math.PI + Math.PI / 2;
+      sin_phi[x] = Math.sin(phi);
+      cos_phi[x] = Math.cos(phi);
     }
 
     for (let y = 0; y < h; ++y) {
       for (let x = 0; x < w; ++x) {
         const planeIdx = indices[y * w + x];
 
-        v[0] = sin_phi[y] * cos_theta[x];
-        v[1] = sin_phi[y] * sin_theta[x];
-        v[2] = cos_phi[y];
+        v[0] = sin_theta[y] * cos_phi[x];
+        v[1] = sin_theta[y] * sin_phi[x];
+        v[2] = cos_theta[y];
 
         if (planeIdx > 0) {
           const plane = planes[planeIdx];
 
           const t = Math.abs(
             plane.d /
-              (v[0] * plane.x + v[1] * plane.y + v[2] * plane.z)
+              (v[0] * plane.n[0] + v[1] * plane.n[1] + v[2] * plane.n[2])
           );
           depthMap[y * w + (w - x - 1)] = t;
         } else {
-          depthMap[y * w + (w - x - 1)] = 0.0;
+          depthMap[y * w + (w - x - 1)] = 9999999999999999999;
         }
       }
     }
