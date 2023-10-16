@@ -146,7 +146,7 @@ class GoogleStreetViewDepthLoader {
     const depthMap = {
       width: 512,
       height: 256,
-      depthMap: new Float32Array(512 * 256),
+      depthMap: new Float32Array(1024 * 512),
     };
     for (let i = 0; i < 512 * 256; ++i)
       depthMap.depthMap[i] = Number.MAX_SAFE_INTEGER;
