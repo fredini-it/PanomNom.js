@@ -128,7 +128,7 @@
           imageData.data[i * 4 + 2] = c;
           imageData.data[i * 4 + 3] = 255;
         }
-        ctx.putImageData(imageData, 0, 0);
+        ctx.putImageData(imageData, -1, 0);
         canvasContainer.append(canvas);
 
         showProgress(`Loading ${id}`);
