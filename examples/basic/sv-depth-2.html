@@ -114,7 +114,7 @@
 
       async function load(id) {
         const depthLoader = new GoogleStreetViewDepthLoader();
-        const res = await depthLoader.load(id, 5);
+        const res = await depthLoader.load(id);
 
         const canvas = document.createElement("canvas");
         canvas.width = res.width;
@@ -126,7 +126,7 @@
           imageData.data[i * 4] = c;
           imageData.data[i * 4 + 1] = c;
           imageData.data[i * 4 + 2] = c;
-          imageData.data[i * 4 + 3] = 255;
+          imageData.data[i * 4 + 3] = 512;
         }
         ctx.putImageData(imageData, 0, 0);
         canvasContainer.append(canvas);
