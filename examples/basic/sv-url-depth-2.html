@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PanomNom.js Basic Usage - Panorama and Depth from URL</title>
+    <link
+      href="//fonts.googleapis.com/css?family=Roboto:400,700,300"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: inherit;
+      }
+      body {
+        font: 12px/14px Roboto, tahoma, sans-serif;
+        padding: 10px;
+        box-sizing: border-box;
+        color: #202020;
+      }
+      section {
+        width: 800px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 24px;
+        line-height: 34px;
+        margin-bottom: 1em;
+      }
+      h2 {
+        font-size: 20px;
+        line-height: 28px;
+      }
+      canvas {
+        margin-top: 1em;
+        width: 100%;
+        /* position: absolute; */
+        left: 0;
+        right: 0;
+      }
+      p {
+        margin-bottom: 1em;
+      }
+      #progressDiv {
+        color: #404040;
+      }
+      #messageDiv {
+        color: #808080;
+      }
+      #errorDiv {
+        color: #b70000;
+      }
+      #URLForm {
+        margin-bottom: 1em;
+      }
+      #URLInput {
+        width: 85%;
+        padding: 5px;
+      }
+      #URLFormSubmit {
+        width: 10%;
+        padding: 5px;
+        border: none;
+        height: 2.4em;
+      }
+    </style>
+  </head>
+  <body>
+    <section>
+      <h1>PanomNom.js Basic Usage</h1>
+      <h2>GoogleStreetViewLoader.load + Depth from URL</h2>
+      <p>
+        This example shows how to set GoogleStreetViewLoader and GoogleStreetViewDepthLoader to load a panorama and its depth map from a Google Maps URL.
+      </p>
+      <p style="overflow: auto">
+        <i
+          >Try
+          https://www.google.com/maps/@51.546483,-0.1293555,29051a,13.1y/data=!3m5!1e1!3m3!1sKGh2_8m7l_ikrgaYrAAFeA!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com%2Fv1%2Fthumbnail%3Fpanoid%3DKGh2_8m7l_ikrgaYrAAFeA%26cb_client%3Dsearch.revgeo_and_fetch.gps%26w%3D96%26h%3D64%26yaw%3D45.903923%26pitch%3D0%26thumbfov%3D100</i
+        >
+      </p>
+      <form id="URLForm">
+        <input type="text" id="URLInput" />
+        <input type="submit" id="URLFormSubmit" />
+      </form>
+      <div id="progressDiv"></div>
+      <div id="messageDiv"></div>
+      <div id="errorDiv"></div>
+      <div id="canvasContainer"></div>
+    </section>
+    <script src="https://maps.google.com/maps/api/js"></script>
+    <script src="../../src/zpipe.min.js"></script>
+    <script type="module">
+      import {
+        GoogleStreetViewLoader,
+        GoogleStreetViewDepthLoader,
+        getIdFromURL,
+      } from "../../src/PanomNom.js";
+
+      const messageDiv = document.getElementById("messageDiv");
+      const errorDiv = document.getElementById("errorDiv");
+      const progressDiv = document.getElementById("progressDiv");
+      const canvasContainer = document.getElementById("canvasContainer");
+      const URLInput = document.getElementById("URLInput");
+      const URLForm = document.getElementById("URLForm");
+
+      function showError(message) {
+        errorDiv.innerHTML = message;
+      }
+
+      function showMessage(message) {
+        messageDiv.innerHTML = message;
+      }
+
+      function showProgress(message) {
+        progressDiv.innerHTML = message;
+      }
+
+      async function load(url) {
+        showMessage("");
+        try {
+          const id = getIdFromURL(url);
+          showProgress(`Loading ${id}`);
+
+          // Load depth map
+          const depthLoader = new GoogleStreetViewDepthLoader();
+          const res = await depthLoader.load(id);
+          const depthCanvas = document.createElement("canvas");
+          depthCanvas.width = res.width;
+          depthCanvas.height = res.height;
+          const ctx = depthCanvas.getContext("2d");
+          const imageData = ctx.getImageData(0, 0, depthCanvas.width, depthCanvas.height);
+          for (let i = 0; i < res.depthMap.length; i++) {
+            const c = Math.min(res.depthMap[i], 255); // Clamp depth value to 255 for display
+            imageData.data[i * 4] = c;
+            imageData.data[i * 4 + 1] = c;
+            imageData.data[i * 4 + 2] = c;
+            imageData.data[i * 4 + 3] = 255;
+          }
+          ctx.putImageData(imageData, 0, 0);
+          canvasContainer.append(depthCanvas);
+
+          // Load panorama
+          const loader = new GoogleStreetViewLoader();
+          loader.onProgress((p) => {
+            showProgress("Loaded " + p.toFixed(0) + "%");
+          });
+          await loader.load(id, 5); // Use zoom level 5 as in sv-url-2.html
+
+          showProgress("Finished.");
+          showError("");
+          canvasContainer.appendChild(loader.canvas);
+          showMessage(
+            "Panorama and depth map loaded, street view data " +
+              loader.metadata.copyright +
+              ".<br/>"
+          );
+        } catch (e) {
+          if (e === "ZERO_RESULTS") {
+            showError("No results");
+          } else if (e === "NO_IMAGE") {
+            showError("Could not load image.");
+          } else {
+            showError(e.message);
+          }
+        }
+      }
+
+      showProgress("Starting.");
+
+      URLForm.addEventListener("submit", (e) => {
+        load(URLInput.value);
+        e.preventDefault();
+      });
+    </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'937863a08c7ce592',t:'MTc0NTg2MjQ5Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+  </body>
+</html>
