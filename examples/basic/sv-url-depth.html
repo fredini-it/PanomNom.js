@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>PanomNom.js Basic Usage</title>
+    <title>PanomNom.js Basic Usage - Panorama and Depth from URL</title>
     <link
       href="//fonts.googleapis.com/css?family=Roboto:400,700,300"
       rel="stylesheet"
@@ -36,7 +36,7 @@
       canvas {
         margin-top: 1em;
         width: 100%;
-        position: absolute;
+        /* position: absolute; */
         left: 0;
         right: 0;
       }
@@ -70,10 +70,9 @@
   <body>
     <section>
       <h1>PanomNom.js Basic Usage</h1>
-      <h2>GoogleStreetViewLoader.load + getIdFromURL</h2>
+      <h2>GoogleStreetViewLoader.load + Depth from URL</h2>
       <p>
-        This example shows how to set GoogleStreetViewLoader to load from a
-        google maps URL.
+        This example shows how to set GoogleStreetViewLoader and GoogleStreetViewDepthLoader to load a panorama and its depth map from a Google Maps URL.
       </p>
       <p style="overflow: auto">
         <i
@@ -91,18 +90,20 @@
       <div id="canvasContainer"></div>
     </section>
     <script src="https://maps.google.com/maps/api/js"></script>
+    <script src="../../src/zpipe.min.js"></script>
     <script type="module">
       import {
         GoogleStreetViewLoader,
+        GoogleStreetViewDepthLoader,
         getIdFromURL,
       } from "../../src/PanomNom.js";
 
-      var messageDiv = document.getElementById("messageDiv");
-      var errorDiv = document.getElementById("errorDiv");
-      var progressDiv = document.getElementById("progressDiv");
-      var canvasContainer = document.getElementById("canvasContainer");
-      var URLInput = document.getElementById("URLInput");
-      var URLForm = document.getElementById("URLForm");
+      const messageDiv = document.getElementById("messageDiv");
+      const errorDiv = document.getElementById("errorDiv");
+      const progressDiv = document.getElementById("progressDiv");
+      const canvasContainer = document.getElementById("canvasContainer");
+      const URLInput = document.getElementById("URLInput");
+      const URLForm = document.getElementById("URLForm");
 
       function showError(message) {
         errorDiv.innerHTML = message;
@@ -121,13 +122,37 @@
         try {
           const id = getIdFromURL(url);
           showProgress(`Loading ${id}`);
-          await loader.load(id, 5);
+
+          // Load depth map
+          const depthLoader = new GoogleStreetViewDepthLoader();
+          const depthResult = await depthLoader.load(id);
+          const depthCanvas = document.createElement("canvas");
+          depthCanvas.width = depthResult.width;
+          depthCanvas.height = depthResult.height;
+          const depthCtx = depthCanvas.getContext("2d");
+          const imageData = depthCtx.getImageData(0, 0, depthCanvas.width, depthCanvas.height);
+          for (let i = 0; i < depthResult.depthMap.length; i++) {
+            const c = depthResult.depthMap[i];
+            imageData.data[i * 4] = c;
+            imageData.data[i * 4 + 1] = c;
+            imageData.data[i * 4 + 2] = c;
+            imageData.data[i * 4 + 3] = 255;
+          }
+          depthCtx.putImageData(imageData, 0, 0);
+          canvasContainer.append(depthCanvas);
+
+          // Load panorama
+          const loader = new GoogleStreetViewLoader();
+          loader.onProgress((p) => {
+            showProgress("Loaded " + p.toFixed(0) + "%");
+          });
+          await loader.load(id, 3);
 
           showProgress("Finished.");
           showError("");
           canvasContainer.appendChild(loader.canvas);
           showMessage(
-            "Panorama loaded, street view data " +
+            "Panorama and depth map loaded, street view data " +
               loader.metadata.copyright +
               ".<br/>"
           );
@@ -144,16 +169,11 @@
 
       showProgress("Starting.");
 
-      const loader = new GoogleStreetViewLoader();
-
-      loader.onProgress((p) => {
-        showProgress("Loaded " + p.toFixed(0) + "%");
-      });
-
       URLForm.addEventListener("submit", (e) => {
         load(URLInput.value);
         e.preventDefault();
       });
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9378278778d2e592',t:'MTc0NTg2MDAzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
   </body>
 </html>
