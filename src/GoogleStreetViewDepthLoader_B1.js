@@ -42,12 +42,12 @@ class GoogleStreetViewDepthLoader {
     return depthMap;
   }
 
-  parseHeader(depthMap) {
+ parseHeader(depthMap) {
     return {
       headerSize: depthMap.getUint8(0),
       numberOfPlanes: depthMap.getUint16(1, true),
-      width: depthMap.getUint16(3, true),
-      height: depthMap.getUint16(5, true),
+      width: depthMap.getUint16(3, true) * 2, // Aumentar a largura em 2x
+      height: depthMap.getUint16(5, true) * 2, // Aumentar a altura em 2x
       offset: depthMap.getUint16(7, true),
     };
   }
@@ -102,7 +102,10 @@ class GoogleStreetViewDepthLoader {
 
     for (let y = 0; y < h; ++y) {
       for (let x = 0; x < w; ++x) {
-        const planeIdx = indices[y * w + x];
+        // Mapeando os índices da resolução original para a nova resolução
+        const origX = Math.floor(x / 2);
+        const origY = Math.floor(y / 2);
+        const planeIdx = indices[origY * (w / 2) + origX];
 
         v[0] = sin_theta[y] * cos_phi[x];
         v[1] = sin_theta[y] * sin_phi[x];
@@ -144,14 +147,13 @@ class GoogleStreetViewDepthLoader {
 
   createEmptyDepthMap() {
     const depthMap = {
-      width: 512,
-      height: 256,
+      width: 1024, // Dobrado
+      height: 512, // Dobrado
       depthMap: new Float32Array(1024 * 512),
     };
-    for (let i = 0; i < 512 * 256; ++i)
+    for (let i = 0; i < 1024 * 512; ++i)
       depthMap.depthMap[i] = Number.MAX_SAFE_INTEGER;
     return depthMap;
   }
-}
 
 export { GoogleStreetViewDepthLoader };
